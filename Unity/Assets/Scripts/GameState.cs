@@ -4,7 +4,7 @@ using System.Collections;
 public class GameState : MonoBehaviour
 {
 
-	public GameState Instance
+	public static GameState Instance
 	{
 		get
 		{
@@ -13,7 +13,17 @@ public class GameState : MonoBehaviour
 			return instance;
 		}
 	}
-	private GameState instance;
+	private static GameState instance;
+
+	private PLAYER lastInitiatedPlayer = 0;
+	public PLAYER NextPlayerId
+	{
+		get
+		{
+			lastInitiatedPlayer++;
+			return lastInitiatedPlayer - 1;
+		}
+	}
 
 	public int[] PlayerPoints = new int[4];
 
@@ -22,13 +32,7 @@ public class GameState : MonoBehaviour
 	{
 		for (int i = 0; i < 4; ++i)
 		{
-
+			PlayerPoints[i] = 0;
 		}
-	}
-
-	// Update is called once per frame
-	void Update()
-	{
-
 	}
 }
