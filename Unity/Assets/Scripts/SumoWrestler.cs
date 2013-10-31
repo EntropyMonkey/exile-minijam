@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using XInputDotNetPure;
 
 public class SumoWrestler : MonoBehaviour
 {
@@ -7,6 +8,10 @@ public class SumoWrestler : MonoBehaviour
 	float _walkSpeed = 10;
 	[SerializeField]
 	float _maxWalkSpeed = 20;
+	[SerializeField]
+	float _stepTimeout = 0.1f;
+
+	float lastStepTimer;
 
 	[SerializeField]
 	float _chargeSpeed = 10;
@@ -27,6 +32,7 @@ public class SumoWrestler : MonoBehaviour
 
 	ChainJam.PLAYER id;
 	public ChainJam.PLAYER ID { get { return id; } }
+	PlayerIndex controllerId;
 
 	SumoWrestler lastContact;
 
@@ -40,16 +46,23 @@ public class SumoWrestler : MonoBehaviour
 
 	Vector3 startPosition;
 
+	Transform meshTransform;
+
 	// Use this for initialization
 	void Start()
 	{
 		id = GameState.Instance.NextPlayerId;
+		controllerId = GameState.GetControllerFromPlayerId(id);
+
 		currentState = Idle;
 		currentWalkState = Stand;
 
 		startPosition = transform.position;
 
 		_walkStepParticles.enableEmission = false;
+
+		animator = GetComponentInChildren<Animator>();
+		meshTransform = transform.FindChild("Mesh");
 	}
 
 	public void Restart()
@@ -69,6 +82,8 @@ public class SumoWrestler : MonoBehaviour
 		{
 			GameState.Instance.PlayerPushedOut(this, lastContact);
 		}
+
+		animator.SetFloat("RunSpeed", walkDirection.magnitude);
 	}
 
 	void Idle()
@@ -81,10 +96,9 @@ public class SumoWrestler : MonoBehaviour
 			rigidbody.AddForce(chargeForce, ForceMode.Impulse);
 			chargeTimer = _chargeTimeout;
 			_chargeStartParticles.Play();
-		}
-		else if (ChainJam.GetButtonJustPressed(id, ChainJam.BUTTON.B))
-		{
-			currentState = Jump;
+			animator.SetBool("Charge", true);
+
+			StartCoroutine(Vibrate(0.3f, 1, 1));
 		}
 	}
 
@@ -98,6 +112,7 @@ public class SumoWrestler : MonoBehaviour
 		{
 			// switch to walking
 			currentWalkState = Walk;
+			lastStepTimer = _stepTimeout;
 		}
 	}
 
@@ -106,6 +121,23 @@ public class SumoWrestler : MonoBehaviour
 		_walkStepParticles.enableEmission = true;
 
 		walkDirection = Vector3.zero;
+
+		if (ChainJam.GetButtonJustPressed(id, ChainJam.BUTTON.A))
+		{
+			animator.SetBool("Charge", true);
+		}
+
+		if (!ChainJam.GetButtonPressed(id, ChainJam.BUTTON.A))
+		{
+			animator.SetBool("Charge", false);
+		}
+
+		//lastStepTimer -= Time.deltaTime;
+		//if (lastStepTimer <= 0)
+		//{
+		//	lastStepTimer = _stepTimeout;
+		//	StartCoroutine(VibrateStep(0.1f));
+		//}
 
 		if (ChainJam.GetButtonPressed(id, ChainJam.BUTTON.LEFT))
 			walkDirection.x = -1;
@@ -124,12 +156,23 @@ public class SumoWrestler : MonoBehaviour
 
 		// switch back to standing
 		if (walkDirection == Vector3.zero)
+		{
+			lastStepTimer = 0;
 			currentWalkState = Stand;
+		}
 	}
 
-	void Jump()
+	IEnumerator Vibrate(float t, float lstrength, float rstrength)
 	{
-
+		while (t > 0)
+		{
+			t -= Time.deltaTime;
+			GamePad.SetVibration(PlayerIndex.One, lstrength, rstrength);
+			GamePad.SetVibration(PlayerIndex.Two, lstrength, rstrength);
+			GamePad.SetVibration(PlayerIndex.Three, lstrength, rstrength);
+			GamePad.SetVibration(PlayerIndex.Four, lstrength, rstrength);
+			yield return new WaitForEndOfFrame();
+		}
 	}
 
 	void OnCollisionEnter(Collision collision)
@@ -140,5 +183,16 @@ public class SumoWrestler : MonoBehaviour
 			lastContact = w;
 			_chargeImpactParticles.Play();
 		}
+
+		StartCoroutine(Vibrate(0.2f, 0.5f, 0.5f));
 	}
+
+	//void OnCollisionStay(Collision collision)
+	//{
+	//	SumoWrestler w;
+	//	if ((w = collision.collider.GetComponent<SumoWrestler>()) != null)
+	//	{
+	//		StartCoroutine(Vibrate(0.1f, 0.1f, 0.1f));
+	//	}
+	//}
 }
