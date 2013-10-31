@@ -3,20 +3,23 @@ using System.Collections;
 
 public class GameState : MonoBehaviour
 {
-
 	public static GameState Instance
 	{
 		get
 		{
 			if (instance == null)
-				instance = this;
+				instance = FindObjectOfType(typeof(GameState)) as GameState;
 			return instance;
 		}
 	}
 	private static GameState instance;
 
-	private PLAYER lastInitiatedPlayer = 0;
-	public PLAYER NextPlayerId
+	[SerializeField]
+	private float _sumoRingRadius = 10;
+	public float SumoRingRadius { get { return _sumoRingRadius; } }
+
+	private ChainJam.PLAYER lastInitiatedPlayer = 0;
+	public ChainJam.PLAYER NextPlayerId
 	{
 		get
 		{
@@ -25,14 +28,17 @@ public class GameState : MonoBehaviour
 		}
 	}
 
-	public int[] PlayerPoints = new int[4];
-
 	// Use this for initialization
 	void Start()
 	{
-		for (int i = 0; i < 4; ++i)
+	}
+
+	public void PlayerPushedOut(SumoWrestler defendant, SumoWrestler aggressor)
+	{
+		defendant.Restart();
+		if (aggressor)
 		{
-			PlayerPoints[i] = 0;
+			ChainJam.AddPoints(aggressor.ID, 1);
 		}
 	}
 }
